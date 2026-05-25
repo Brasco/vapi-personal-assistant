@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Console chiamate</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: #0f1115; color: #e7ecf3; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1a1d24; padding: 12px 16px; border-bottom: 1px solid #2a2f3a; }
+    header h1 { margin: 0; font-size: 16px; }
+    .num-row { padding: 12px 16px; background: #161922; border-bottom: 1px solid #2a2f3a; }
+    .num-row label { font-size: 12px; color: #8a93a6; display: block; margin-bottom: 4px; }
+    .num-row input { width: 100%; padding: 10px; background: #0f1115; border: 1px solid #2a2f3a; border-radius: 8px; color: #e7ecf3; font-size: 15px; }
+    #chat { flex: 1; overflow-y: auto; padding: 16px; }
+    .msg { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 85%; line-height: 1.4; }
+    .msg.user { background: #2563eb; color: white; margin-left: auto; }
+    .msg.assistant { background: #1f2937; border: 1px solid #2a2f3a; }
+    .msg.system { background: #422006; color: #fbbf24; font-size: 13px; max-width: 100%; }
+    .preview { background: #14241a; border: 1px solid #2f4f3a; border-radius: 8px; padding: 12px; margin: 8px 0; font-size: 13px; white-space: pre-wrap; }
+    footer { background: #1a1d24; padding: 10px; border-top: 1px solid #2a2f3a; display: flex; flex-direction: column; gap: 8px; }
+    .input-row { display: flex; gap: 8px; }
+    #inputBox { flex: 1; padding: 12px; background: #0f1115; border: 1px solid #2a2f3a; border-radius: 8px; color: #e7ecf3; font-size: 14px; resize: none; min-height: 44px; }
+    button { padding: 12px 16px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button.send { background: #2563eb; color: white; }
+    button.call { background: #16a34a; color: white; width: 100%; }
+    button:disabled { opacity: 0.5; }
+    .feedback { font-size: 12px; color: #8a93a6; text-align: center; min-height: 16px; }
+  </style>
+</head>
+<body>
+  <header><h1>Console chiamate in uscita</h1></header>
+  <div class="num-row">
+    <label>Numero da chiamare (formato +39...)</label>
+    <input type="tel" id="toNumber" placeholder="+39 ...">
+  </div>
+  <div id="chat">
+    <div class="msg system">Descrivi la telefonata da fare. Es: "Chiama il ristorante X e prenota un tavolo".</div>
+  </div>
+  <footer>
+    <div class="input-row">
+      <textarea id="inputBox" placeholder="Scrivi qui..."></textarea>
+      <button class="send" id="btnSend">Invia</button>
+    </div>
+    <button class="call" id="btnCall" style="display:none;">Avvia la chiamata</button>
+    <div class="feedback" id="feedback"></div>
+  </footer>
+
+  <script>
+    // Pagina servita dal deployment UI (login Google). Le fetch interne
+    // vanno sul deployment API col token UI a vita breve iniettato
+    // server-side. UIURL serve a costruire il link a live_view (pagina UI).
+    const UITOK = '<?= uiToken ?>';
+    const API = '<?= apiUrl ?>';
+    const UIURL = '<?= uiUrl ?>';
+    const $ = id => document.getElementById(id);
+    const chat = $('chat');
+    const history = [];
+    let finalPrompt = null;   // { first_message, system_prompt }
+
+    function escape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function addMsg(role, text) {
+      const el = document.createElement('div');
+      el.className = 'msg ' + role;
+      el.innerHTML = escape(text);
+      chat.appendChild(el); chat.scrollTop = chat.scrollHeight;
+    }
+    function addPreview(fm, sp) {
+      const el = document.createElement('div');
+      el.className = 'preview';
+      el.textContent = 'PROMPT PRONTO\n\nPrima frase:\n' + fm + '\n\nIstruzioni agente:\n' + sp;
+      chat.appendChild(el); chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendToGemini() {
+      const txt = $('inputBox').value.trim();
+      if (!txt) return;
+      addMsg('user', txt);
+      history.push({ role: 'user', content: txt });
+      $('inputBox').value = '';
+      $('btnSend').disabled = true;
+      $('feedback').textContent = 'Gemini sta pensando...';
+      try {
+        const res = await fetch(API + '?action=gemini_chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ uitok: UITOK, history: history })
+        });
+        const j = JSON.parse(await res.text());
+        if (j.ready) {
+          finalPrompt = { first_message: j.first_message, system_prompt: j.system_prompt };
+          addPreview(j.first_message, j.system_prompt);
+          addMsg('system', 'Tutto pronto. Verifica il prompt qui sopra, poi premi "Avvia la chiamata". Se vuoi correggere qualcosa, scrivilo pure.');
+          $('btnCall').style.display = 'block';
+        } else {
+          addMsg('assistant', j.question || '(nessuna risposta)');
+          history.push({ role: 'assistant', content: j.question || '' });
+        }
+        $('feedback').textContent = '';
+      } catch (e) {
+        $('feedback').textContent = 'Errore: ' + e;
+      }
+      $('btnSend').disabled = false;
+    }
+
+    async function startCall() {
+      const num = $('toNumber').value.trim();
+      if (!num) { $('feedback').textContent = 'Inserisci il numero da chiamare'; return; }
+      if (!finalPrompt) { $('feedback').textContent = 'Prompt non ancora pronto'; return; }
+      $('btnCall').disabled = true;
+      $('feedback').textContent = 'Avvio chiamata...';
+      try {
+        const res = await fetch(API + '?action=start_outbound_call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            uitok: UITOK,
+            to_number: num,
+            first_message: finalPrompt.first_message,
+            system_prompt: finalPrompt.system_prompt
+          })
+        });
+        const j = JSON.parse(await res.text());
+        if (j.ok && j.callId) {
+          const liveUrl = UIURL + '?action=live_view&callId=' + encodeURIComponent(j.callId);
+          addMsg('system', 'Chiamata avviata. Apri il monitoraggio live:');
+          const a = document.createElement('a');
+          a.href = liveUrl; a.target = '_blank';
+          a.textContent = '→ Apri chat live della chiamata';
+          a.style.cssText = 'display:block;margin:8px 0;color:#4ade80;';
+          chat.appendChild(a);
+          $('feedback').textContent = 'Chiamata in corso';
+        } else {
+          $('feedback').textContent = 'Errore avvio: ' + JSON.stringify(j).substring(0, 200);
+          $('btnCall').disabled = false;
+        }
+      } catch (e) {
+        $('feedback').textContent = 'Errore: ' + e;
+        $('btnCall').disabled = false;
+      }
+    }
+
+    $('btnSend').onclick = sendToGemini;
+    $('btnCall').onclick = startCall;
+  </script>
+</body>
+</html>

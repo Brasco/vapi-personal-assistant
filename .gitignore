@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Node (se usi strumenti di build)
+node_modules/
+
+# clasp (Apps Script CLI)
+# .clasprc.json contiene le credenziali OAuth: NON committarlo MAI.
+.clasprc.json
+.clasp.json
+
+# File di configurazione locali con segreti reali
+# Tieni i segreti SOLO nel progetto Apps Script, mai nel repo.
+*.local
+secrets.*
+config.local.*
