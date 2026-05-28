@@ -46,25 +46,25 @@ What makes this different from off-the-shelf "AI receptionist" products:
 
 ```
                           ┌───────────────────────────┐
-   Caller ──(missed)──▶    │  Your mobile operator      │
-                          │  conditional call forward  │
+   Caller ──(missed)──▶   │  Your mobile operator     │
+                          │  conditional call forward │
                           └────────────┬──────────────┘
                                        ▼
                           ┌───────────────────────────┐
-                          │  Zadarma (SIP trunk, +39)  │
+                          │  Zadarma (SIP trunk, +39) │
                           └────────────┬──────────────┘
                                        ▼
    ┌──────────────────────────────────────────────────────────┐
-   │  Vapi  — STT (Deepgram) · LLM (GPT-4o) · TTS (ElevenLabs)  │
+   │  Vapi  — STT (Deepgram) · LLM (GPT-4o) · TTS (ElevenLabs)│
    └───────────────┬───────────────────────┬──────────────────┘
                    │ tool calls            │ webhooks (events)
                    ▼                       ▼
    ┌──────────────────────────────────────────────────────────┐
-   │  Apps Script Web App  (the "gateway" — you own it)        │
-   │  • check_availability / book_appointment  → Calendar      │
-   │  • status-update / end-of-call   → Pushover + Gmail       │
-   │  • live monitor (say / instruct / hangup)                 │
-   │  • outbound console + Gemini call-brief generator         │
+   │  Apps Script Web App  (the "gateway" — you own it)       │
+   │  • check_availability / book_appointment  → Calendar     │
+   │  • status-update / end-of-call   → Pushover + Gmail      │
+   │  • live monitor (say / instruct / hangup)                │
+   │  • outbound console + Gemini call-brief generator        │
    └──────────────────────────────────────────────────────────┘
 
    Recaps (independent): Apps Script time triggers → Gemini → Gmail + Pushover

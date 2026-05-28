@@ -49,25 +49,25 @@ Cosa distingue questo sistema dai prodotti "AI receptionist" già pronti:
 
 ```
                           ┌───────────────────────────┐
-  Chiamante ─(persa)─▶     │  Operatore mobile          │
-                          │  inoltro condizionato      │
+  Chiamante ─(persa)─▶    │  Operatore mobile         │
+                          │  inoltro condizionato     │
                           └────────────┬──────────────┘
                                        ▼
                           ┌───────────────────────────┐
-                          │  Zadarma (SIP trunk, +39)  │
+                          │  Zadarma (SIP trunk, +39) │
                           └────────────┬──────────────┘
                                        ▼
    ┌──────────────────────────────────────────────────────────┐
-   │  Vapi  — STT (Deepgram) · LLM (GPT-4o) · TTS (ElevenLabs)  │
+   │  Vapi  — STT (Deepgram) · LLM (GPT-4o) · TTS (ElevenLabs)│
    └───────────────┬───────────────────────┬──────────────────┘
                    │ tool calls            │ webhook (eventi)
                    ▼                       ▼
    ┌──────────────────────────────────────────────────────────┐
-   │  Web App Apps Script  (il "gateway" — lo possiedi tu)     │
-   │  • check_availability / book_appointment  → Calendar      │
-   │  • status-update / end-of-call   → Pushover + Gmail       │
-   │  • monitor live (dire / istruire / riagganciare)          │
-   │  • console outbound + generatore di brief con Gemini      │
+   │  Web App Apps Script  (il "gateway" — lo possiedi tu)    │
+   │  • check_availability / book_appointment  → Calendar     │
+   │  • status-update / end-of-call   → Pushover + Gmail      │
+   │  • monitor live (dire / istruire / riagganciare)         │
+   │  • console outbound + generatore di brief con Gemini     │
    └──────────────────────────────────────────────────────────┘
 
    Recap (indipendenti): trigger Apps Script → Gemini → Gmail + Pushover
